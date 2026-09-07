@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIS Audit Agent - Enterprise Host Security & Compliance Dashboard</title>
+  
+  <!-- Premium Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- BACKGROUND DECORATIVE GLOWS -->
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+
+  <div class="app-layout">
+    
+    <!-- TOP ENTERPRISE NAVBAR -->
+    <header class="top-navbar glass-card">
+      <div class="brand-container">
+        <div class="logo-shield">
+          <svg width="28" height="32" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 0L0 5V13C0 20.5 5.1 27.2 12 28C18.9 27.2 24 20.5 24 13V5L12 0Z" fill="url(#shield_grad)"/>
+            <path d="M12 4L4 7.5V13C4 18.2 7.4 23 12 23.9V4Z" fill="white" fill-opacity="0.2"/>
+            <defs>
+              <linearGradient id="shield_grad" x1="0" y1="0" x2="24" y2="28" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00F2FE"/>
+                <stop offset="1" stop-color="#4FACFE"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <div class="title-row">
+            <h1 class="brand-title">CIS Audit Agent</h1>
+            <span class="status-pill"><span class="pulse-dot"></span> Strictly Read-Only</span>
+          </div>
+          <p class="brand-subtitle">Linux Host Hardening & Zero-Drift Audit Engine</p>
+        </div>
+      </div>
+
+      <!-- AUDIT TARGET CONTROLS -->
+      <div class="header-controls">
+        <div class="control-box">
+          <label>Target Host</label>
+          <select id="targetInput" class="select-field">
+            <option value="demo-misconfigured" selected>demo-misconfigured (8 Vulnerabilities)</option>
+            <option value="demo-clean">demo-clean (100% Compliant)</option>
+            <option value="demo-broken">demo-broken (Hostile / Unreachable)</option>
+            <option value="ubuntu-box">local-docker-container</option>
+          </select>
+        </div>
+
+        <div class="control-box">
+          <label>Transport</label>
+          <select id="transportSelect" class="select-field">
+            <option value="demo" selected>Demo Transport Mode</option>
+            <option value="docker">Docker Exec</option>
+            <option value="ssh">SSH Key Protocol</option>
+            <option value="local">Local Host Shell</option>
+          </select>
+        </div>
+
+        <button id="runAuditBtn" class="primary-glow-btn">
+          <span id="btnSpinner" class="btn-spinner hidden"></span>
+          <span id="btnIcon">⚡</span>
+          <span id="btnText">Run Audit</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD WORKSPACE GRID -->
+    <div class="workspace">
+      
+      <!-- MAIN LEFT CONTENT AREA -->
+      <main class="content-area">
+        
+        <!-- SUMMARY STATS OVERVIEW CARDS -->
+        <section class="stats-grid">
+          
+          <!-- COMPLIANCE CIRCULAR SCORE CARD -->
+          <div class="stat-card glass-card card-score">
+            <div class="card-caption">
+              <span>Compliance Rating</span>
+              <span id="gradeBadge" class="grade-badge grade-f">GRADE F</span>
+            </div>
+            <div class="score-row">
+              <div class="ring-container">
+                <svg class="ring-svg" viewBox="0 0 100 100">
+                  <circle class="ring-bg" cx="50" cy="50" r="40"></circle>
+                  <circle id="ringFill" class="ring-fill" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                </svg>
+                <div id="scoreText" class="ring-text">0%</div>
+              </div>
+              <div class="score-details">
+                <div class="score-title">System Security Index</div>
+                <div id="scoreSubtitle" class="score-sub">8 Vulnerabilities Flagged</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASSED METRIC CARD -->
+          <div class="stat-card glass-card border-pass">
+            <div class="card-caption">
+              <span>Passed Rules</span>
+              <span class="dot dot-pass"></span>
+            </div>
+            <div id="passCount" class="stat-number color-pass">0</div>
+            <div class="stat-footer">Compliant security controls</div>
+          </div>
+
+          <!-- FAILED METRIC CARD -->
+          <div class="stat-card glass-card border-fail">
+            <div class="card-caption">
+              <span>Failed Rules</span>
+              <span class="dot dot-fail"></span>
+            </div>
+            <div id="failCount" class="stat-number color-fail">0</div>
+            <div class="stat-footer">Remediation required</div>
+          </div>
+
+          <!-- UNKNOWN METRIC CARD -->
+          <div class="stat-card glass-card border-unknown">
+            <div class="card-caption">
+              <span>Unknown / Skipped</span>
+              <span class="dot dot-unknown"></span>
+            </div>
+            <div id="unknownCount" class="stat-number color-unknown">0</div>
+            <div class="stat-footer">Permission denied / missing tool</div>
+          </div>
+        </section>
+
+        <!-- VIEW TAB NAVIGATION -->
+        <div class="tab-navbar glass-card">
+          <button class="tab-btn active" data-tab="remediationTab">
+            <span>🛠️</span> Prioritized Fix List
+          </button>
+          <button class="tab-btn" data-tab="matrixTab">
+            <span>📋</span> Compliance Matrix
+          </button>
+          <button class="tab-btn" data-tab="terminalTab">
+            <span>💻</span> Raw Command Logs
+          </button>
+          <div class="tab-search-box">
+            <input type="text" id="ruleSearchInput" placeholder="Filter rules by ID or keyword...">
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 1: REMEDIATION FIX LIST -->
+        <div id="remediationTab" class="tab-pane active">
+          <div id="fixListContainer" class="fix-cards-stack">
+            <div class="empty-placeholder">Run an audit to generate a prioritized remediation plan.</div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: COMPLIANCE MATRIX -->
+        <div id="matrixTab" class="tab-pane">
+          <div class="glass-card table-wrapper">
+            <table class="compliance-table">
+              <thead>
+                <tr>
+                  <th>Rule ID</th>
+                  <th>Title</th>
+                  <th>Verdict</th>
+                  <th>Observed Evidence Excerpt</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="matrixTableBody">
+                <tr><td colspan="5" class="empty-cell">No audit data loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 3: RAW COMMAND LOGS -->
+        <div id="terminalTab" class="tab-pane">
+          <div class="glass-card terminal-container">
+            <div class="terminal-header">
+              <span class="term-dot red"></span>
+              <span class="term-dot yellow"></span>
+              <span class="term-dot green"></span>
+              <span class="term-title">Target Terminal Execution Log (Read-Only)</span>
+            </div>
+            <pre id="terminalOutput" class="terminal-body">Run an audit to view raw stdout/stderr outputs captured from target host.</pre>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- SIDEBAR RIGHT: AI SECURITY ASSISTANT CHATBOT -->
+      <aside class="sidebar-area">
+        <div class="glass-card chatbot-widget">
+          
+          <div class="widget-header">
+            <div class="bot-avatar-badge">
+              <span class="bot-icon">🤖</span>
+              <span class="online-indicator"></span>
+            </div>
+            <div>
+              <h3 class="widget-title">AuditBot AI Assistant</h3>
+              <p class="widget-sub">Context-Aware Security Advisor</p>
+            </div>
+          </div>
+
+          <!-- MESSAGES SCROLL BOX -->
+          <div id="chatMessages" class="chat-viewport">
+            <div class="chat-bubble bot">
+              <div class="bubble-content">
+                Hello! I am <strong>AuditBot AI</strong>. I analyze your target host's security state and guide you through remediation.<br><br>
+                Try asking me:
+                <div class="suggestion-list">
+                  <button class="chip" data-query="Summarize critical risks">📊 Summarize Risks</button>
+                  <button class="chip" data-query="How to fix SSH root login">🔒 Fix SSH</button>
+                  <button class="chip" data-query="Explain shadow file permissions">🔑 Shadow Perms</button>
+                  <button class="chip" data-query="Explain read-only safety">🛡️ Safety Model</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHAT INPUT AREA -->
+          <form id="chatForm" class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Ask AuditBot AI a question..." required autocomplete="off">
+            <button type="submit" class="send-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+          </form>
+
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer-bar">
+      <div>CIS Audit Agent v1.0 • Strictly Read-Only Host Hardening Engine • Grounded Reproducible Security</div>
+    </footer>
+
+  </div>
+
+  <!-- EVIDENCE DETAIL MODAL -->
+  <div id="evidenceModal" class="modal-overlay hidden">
+    <div class="glass-card modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Rule Evidence Inspector</h3>
+        <button id="closeModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field"><label>Rule ID:</label> <span id="modalRuleId">--</span></div>
+        <div class="modal-field"><label>Executed Command:</label> <code id="modalCmd">--</code></div>
+        <div class="modal-field"><label>Verdict:</label> <span id="modalVerdict">--</span></div>
+        <div class="modal-field"><label>Raw Captured Output:</label>
+          <pre id="modalRawOutput" class="code-block"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+{
+  "metadata": {
+    "target": "demo-misconfigured",
+    "transport": "demo",
+    "allowlist_version": "1.0.0",
+    "timestamp": "2026-08-14T09:52:06.033784Z"
+  },
+  "summary": {
+    "total_checks": 10,
+    "pass_count": 2,
+    "fail_count": 8,
+    "unknown_count": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CIS-5.2.10",
+      "title": "Disable SSH Root Login",
+      "command": "sshd -T 2>/dev/null | grep -i permitrootlogin || grep -i '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "PermitRootLogin is set to 'yes' (expected 'no')",
+      "severity_hint": "high"
+    },
+    {
+      "rule_id": "CIS-5.2.11",
+      "title": "Disable SSH Password Authentication",
+      "command": "sshd -T 2>/dev/null | grep -i passwordauthentication || grep -i '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "PasswordAuthentication is set to 'yes' (expected 'no')",
+      "severity_hint": "medium"
+    },
+    {
+      "rule_id": "CIS-6.1.2",
+      "title": "Ensure permissions on /etc/shadow are configured",
+      "command": "stat -c '%a %U %G' /etc/shadow 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "Insecure permissions: 666 owner root:root (expected 640 root:shadow or root:root)",
+      "severity_hint": "critical"
+    },
+    {
+      "rule_id": "CIS-6.1.1",
+      "title": "Ensure permissions on /etc/passwd are configured",
+      "command": "stat -c '%a %U %G' /etc/passwd 2>/dev/null",
+      "status": "PASS",
+      "evidence": "Permissions are 644 owner root",
+      "severity_hint": "medium"
+    },
+    {
+      "rule_id": "CIS-6.2.1",
+      "title": "Ensure no accounts have empty password fields",
+      "command": "awk -F: '($2 == \"\") {print $1}' /etc/shadow 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "Account(s) with empty password: testuser",
+      "severity_hint": "critical"
+    },
+    {
+      "rule_id": "CIS-3.5.1",
+      "title": "Ensure firewall is active",
+      "command": "ufw status 2>/dev/null || systemctl is-active firewalld 2>/dev/null || iptables -L -n 2>/dev/null",
+      "status": "PASS",
+      "evidence": "Active firewall detected",
+      "severity_hint": "high"
+    },
+    {
+      "rule_id": "CIS-5.3.4",
+      "title": "Ensure sudoers contains no NOPASSWD wildcard",
+      "command": "grep -r -i 'NOPASSWD' /etc/sudoers /etc/sudoers.d/ 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "NOPASSWD entry found: %sudo ALL=(ALL:ALL) NOPASSWD: ALL",
+      "severity_hint": "high"
+    },
+    {
+      "rule_id": "CIS-6.1.10",
+      "title": "Ensure no world-writable files exist in system paths",
+      "command": "find /etc /var /usr -maxdepth 3 -type f -perm -0002 2>/dev/null | head -n 20",
+      "status": "FAIL",
+      "evidence": "World-writable files detected: /etc/config_backup.tmp",
+      "severity_hint": "medium"
+    },
+    {
+      "rule_id": "CIS-5.3.1",
+      "title": "Ensure password complexity / length policy is set",
+      "command": "cat /etc/security/pwquality.conf /etc/pam.d/common-password 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "Minimum password length is 6 (expected >= 14)",
+      "severity_hint": "low"
+    },
+    {
+      "rule_id": "CIS-1.9",
+      "title": "Ensure automatic security updates are enabled",
+      "command": "cat /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null || systemctl is-enabled unattended-upgrades 2>/dev/null",
+      "status": "FAIL",
+      "evidence": "Automatic security updates disabled",
+      "severity_hint": "low"
+    }
+  ],
+  "fix_list": [
+    {
+      "priority": 1,
+      "rule_id": "CIS-6.1.2",
+      "category": "File Permissions",
+      "finding": "Permissions or ownership on /etc/shadow are insecure. (Observed: 'Insecure permissions: 666 owner root:root (expected 640 root:shadow or root:root)')",
+      "why_it_matters": "/etc/shadow contains encrypted user password hashes. Excessive permissions allow local password hash cracking.",
+      "fix_command": "sudo chown root:shadow /etc/shadow && sudo chmod 640 /etc/shadow",
+      "evidence_ref": "CIS-6.1.2"
+    },
+    {
+      "priority": 2,
+      "rule_id": "CIS-6.2.1",
+      "category": "Account Security",
+      "finding": "Accounts with empty password fields detected. (Observed: 'Account(s) with empty password: testuser')",
+      "why_it_matters": "Allows unauthenticated users to gain shell access without entering a password.",
+      "fix_command": "sudo passwd -l <username>",
+      "evidence_ref": "CIS-6.2.1"
+    },
+    {
+      "priority": 3,
+      "rule_id": "CIS-5.2.10",
+      "category": "SSH Hardening",
+      "finding": "Root login over SSH is permitted. (Observed: 'PermitRootLogin is set to 'yes' (expected 'no')')",
+      "why_it_matters": "A leaked or brute-forced root credential grants full remote access with no separate privilege escalation step.",
+      "fix_command": "sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && sudo systemctl reload sshd",
+      "evidence_ref": "CIS-5.2.10"
+    },
+    {
+      "priority": 4,
+      "rule_id": "CIS-5.3.4",
+      "category": "Privilege Escalation",
+      "finding": "Wildcard NOPASSWD found in sudoers configuration. (Observed: 'NOPASSWD entry found: %sudo ALL=(ALL:ALL) NOPASSWD: ALL')",
+      "why_it_matters": "Allows users or compromised processes to run administrative commands as root without authentication.",
+      "fix_command": "sudo visudo  # Remove NOPASSWD directives from /etc/sudoers and /etc/sudoers.d/",
+      "evidence_ref": "CIS-5.3.4"
+    },
+    {
+      "priority": 5,
+      "rule_id": "CIS-5.2.11",
+      "category": "SSH Hardening",
+      "finding": "SSH password authentication is enabled. (Observed: 'PasswordAuthentication is set to 'yes' (expected 'no')')",
+      "why_it_matters": "Allows password brute-force attacks against SSH service. Key-based authentication should be enforced.",
+      "fix_command": "sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl reload sshd",
+      "evidence_ref": "CIS-5.2.11"
+    },
+    {
+      "priority": 6,
+      "rule_id": "CIS-6.1.10",
+      "category": "File System Integrity",
+      "finding": "World-writable files present in system directories. (Observed: 'World-writable files detected: /etc/config_backup.tmp')",
+      "why_it_matters": "Any local user can modify or corrupt critical system configuration or executable scripts.",
+      "fix_command": "sudo chmod o-w <file_path>",
+      "evidence_ref": "CIS-6.1.10"
+    },
+    {
+      "priority": 7,
+      "rule_id": "CIS-1.9",
+      "category": "System Maintenance",
+      "finding": "Automatic security updates are disabled. (Observed: 'Automatic security updates disabled')",
+      "why_it_matters": "Leaves system unpatched against publicly known security vulnerabilities (CVEs).",
+      "fix_command": "sudo apt-get install -y unattended-upgrades && sudo dpkg-reconfigure --priority=low unattended-upgrades",
+      "evidence_ref": "CIS-1.9"
+    },
+    {
+      "priority": 8,
+      "rule_id": "CIS-5.3.1",
+      "category": "Password Policy",
+      "finding": "Password complexity / length policy is insufficient. (Observed: 'Minimum password length is 6 (expected >= 14)')",
+      "why_it_matters": "Short or simple passwords are vulnerable to dictionary and brute-force attacks.",
+      "fix_command": "sudo apt-get install -y libpam-pwquality && sudo sed -i 's/# minlen =.*/minlen = 14/' /etc/security/pwquality.conf",
+      "evidence_ref": "CIS-5.3.1"
+    }
+  ],
+  "raw_evidence": {
+    "ssh_root_login": {
+      "command_key": "ssh_root_login",
+      "command": "sshd -T 2>/dev/null | grep -i permitrootlogin || grep -i '^PermitRootLogin' /etc/ssh/sshd_config 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "permitrootlogin yes",
+      "stderr": "",
+      "available": true
+    },
+    "ssh_password_auth": {
+      "command_key": "ssh_password_auth",
+      "command": "sshd -T 2>/dev/null | grep -i passwordauthentication || grep -i '^PasswordAuthentication' /etc/ssh/sshd_config 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "passwordauthentication yes",
+      "stderr": "",
+      "available": true
+    },
+    "shadow_perms": {
+      "command_key": "shadow_perms",
+      "command": "stat -c '%a %U %G' /etc/shadow 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "666 root root",
+      "stderr": "",
+      "available": true
+    },
+    "passwd_perms": {
+      "command_key": "passwd_perms",
+      "command": "stat -c '%a %U %G' /etc/passwd 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "644 root root",
+      "stderr": "",
+      "available": true
+    },
+    "empty_passwords": {
+      "command_key": "empty_passwords",
+      "command": "awk -F: '($2 == \"\") {print $1}' /etc/shadow 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "testuser",
+      "stderr": "",
+      "available": true
+    },
+    "firewall_status": {
+      "command_key": "firewall_status",
+      "command": "ufw status 2>/dev/null || systemctl is-active firewalld 2>/dev/null || iptables -L -n 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "Status: inactive",
+      "stderr": "",
+      "available": true
+    },
+    "sudoers_nopasswd": {
+      "command_key": "sudoers_nopasswd",
+      "command": "grep -r -i 'NOPASSWD' /etc/sudoers /etc/sudoers.d/ 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "%sudo ALL=(ALL:ALL) NOPASSWD: ALL",
+      "stderr": "",
+      "available": true
+    },
+    "world_writable": {
+      "command_key": "world_writable",
+      "command": "find /etc /var /usr -maxdepth 3 -type f -perm -0002 2>/dev/null | head -n 20",
+      "exit_code": 0,
+      "stdout": "/etc/config_backup.tmp",
+      "stderr": "",
+      "available": true
+    },
+    "pw_quality": {
+      "command_key": "pw_quality",
+      "command": "cat /etc/security/pwquality.conf /etc/pam.d/common-password 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "minlen = 6",
+      "stderr": "",
+      "available": true
+    },
+    "auto_updates": {
+      "command_key": "auto_updates",
+      "command": "cat /etc/apt/apt.conf.d/20auto-upgrades 2>/dev/null || systemctl is-enabled unattended-upgrades 2>/dev/null",
+      "exit_code": 0,
+      "stdout": "APT::Periodic::Update-Package-Lists \"0\";",
+      "stderr": "",
+      "available": true
+    }
+  }
+}
